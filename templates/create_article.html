@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Create New Article{% endblock %}
+
+{% block content %} 
+  {% block breadcrumb %}
+    <div class="ui breadcrumb">
+        <a class="section">Home</a>
+          <div class="divider"> / </div>
+            <a class="section"><a href="/articles">Articles</a></a>
+                <div class="divider"> / </div>
+                    <div class="active section">New Article</div>
+  {% endblock %}
+
+<form class="ui form" method="post">
+  <div class="field">
+    <label>Title</label>
+    <input type="text" name="title" placeholder="Title" required>
+  </div>
+  <div class="field">
+    <label>Email Address</label>
+    <input type="email" name="email" pattern="^([a-z]+)\.([a-z]+)\d*@bbc\.co\.uk$" placeholder="Email Address" required>
+  </div>
+  <div class="field">
+    <label>Text</label>
+    <textarea name="text" cols="50" required></textarea>
+  </div>
+  <button class="ui button" type="submit">Publish</button>
+</form>
+
+{% endblock %}

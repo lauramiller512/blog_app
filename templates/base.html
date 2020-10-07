@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" type="text/css" href="/static/css/app.css" />
+    <link rel="stylesheet" type="text/css" href="/static/semantic/semantic.css" />
+
+    <title>{% block title %}{% endblock %}</title>
+    {% endblock %}
+</head>
+<body>
+    <div class="ui raised very padded text container segment">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

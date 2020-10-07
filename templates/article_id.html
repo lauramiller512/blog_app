@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{article.title}}{% endblock %}
+
+{% block content %}
+  {% block breadcrumb %}
+<!--   <div class="ui ui raised very padded text row segment">
+ -->    <div class="ui breadcrumb">
+      <a class="section">Home</a>
+        <div class="divider"> / </div>
+          <a class="section"><a href="/articles">Articles</a></a>
+        <div class="divider"> / </div>
+      <div class="active section">{{article.title}}</div>
+    </div>
+  {% endblock %}
+
+  {% block container%}
+    <h2>{{article.title}}</h2>
+
+      <div class="ui card">
+        <div class="content left floated">
+          <div class="right floated meta">29-10-20</div>
+          <img class="ui avatar image" src="/static/images/elliot.jpg"> 
+            {{article.created_by.username}}
+        </div>
+      </div>
+
+    <p>{{article.text}}</p>
+  </div>
+  {% endblock %}
+
+{% endblock %}
