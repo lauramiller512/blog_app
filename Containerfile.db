@@ -1,0 +1,7 @@
+FROM postgres:12.2-alpine
+ARG http_proxy
+ARG https_proxy
+ENV POSTGRES_USER blog-app-user
+ENV POSTGRES_DB blog-app-db
+ENV POSTGRES_PASSWORD lantern_rouge
+EXPOSE 5432
