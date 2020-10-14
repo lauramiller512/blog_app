@@ -2,7 +2,7 @@ VENV_PATH=venv/$(shell uname -s)
 
 DATABASE_CONTAINER=blog-app-database
 DATABASE_POD=blog-app-pod
-DKR_CMD=podman
+DKR_CMD=sudo podman
 
 WITH_APP_BUILD_CONTAINER = $(DKR_CMD) run \
     -e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
@@ -33,7 +33,6 @@ app_build_container:
 .PHONY: app_container
 app_container:
 	$(DKR_CMD) build \
-    --quiet \
     --build-arg http_proxy --build-arg https_proxy \
     --rm -t "cloudteam/blog-app" \
     -f Containerfile.app .

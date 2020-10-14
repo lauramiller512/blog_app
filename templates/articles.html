@@ -10,34 +10,11 @@
         <a class="active section"><a href="/articles">Articles</a></a>
   {% endblock %}
       <ul>
-        {% for k, v in articles.items() %}
-        <li>
-        <a href="/articles/{{k}}">
-        {{v.title}} </a>
+      {% for r in articles %}        
+      <li>
+        <a href="/articles/{{r[0]}}">
+        {{r[1]}} </a>
         </li>
         {% endfor %}
       </ul>
       {% endblock %}
-
-<!-- 
-<html>
-  <head>
-    <title>Flask Template Example</title>
-  </head>
-  <body>
-    <div class="container">
-      <ul>
-        {% for k, v in articles.items() %}
-        <li>
-        <a href="/articles/{{k}}">
-        {{v.title}} </a>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </body>
-</html> -->
-
-<!-- ontent block and for article_id and notfound
-
-article_id and notfound have title -->

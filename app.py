@@ -1,3 +1,4 @@
+
 from flask import Flask, Response, render_template
 from flask import request
 from werkzeug.exceptions import NotFound, BadRequest
@@ -6,6 +7,7 @@ import re
 import logging
 from functools import wraps
 from time import time
+import psycopg2
 
 from models.user import User
 from models.article import Article
@@ -14,15 +16,10 @@ app = Flask(__name__)
 
 EMAIL_PATTERN = r"^([a-z]+)\.([a-z]+)\d*@bbc\.co\.uk$"
 
-users = {
-    1: User("Yav", "Yavor", "Atanasov"),
-    2: User("Loz", "Laura", "Miller")
-}
 
-articles = {
-    1: Article("Sample text", "First Article", users[1]),
-    2: Article("Another sample text", "Second Article", users[2])
-}
+def get_database_connection():
+    conn = psycopg2.connect("dbname='blog-app-db' user='blog-app-user' host='127.0.0.1' password='lantern_rouge'")
+    return conn
 
 def measure_time(f):
     @wraps(f)
@@ -33,6 +30,18 @@ def measure_time(f):
         logging.warn("Time taken: {0}".format(t1-t0))
         return result
     return decorated_function
+
+def db_connection():
+    connection = get_database_connection()
+    cur = connection.cursor()
+    return cur  
+
+def retrieve_articles():
+    cur = db_connection()
+    cur.execute("""SELECT id, title from articles""")
+    articles = cur.fetchall()
+    return articles
+
 
 @app.errorhandler(BadRequest)
 def bad_request(bad_request):
@@ -56,12 +65,8 @@ def hello_world():
 @measure_time
 def get_articles():
     if request.method == "GET":
-        response = []
-        for article in articles.values():
-            response.append({
-                "title": article.title
-            })
-        return Response(json.dumps(response), mimetype="application/json")
+        articles = retrieve_articles()   
+        return Response(json.dumps(articles), mimetype="application/json")
     else:
         data = request.json
         try:
@@ -100,41 +105,89 @@ def get_article(article_id):
 @app.route("/articles")
 @measure_time
 def get_articles_html():
+    articles = retrieve_articles()
     return render_template("articles.html", articles=articles)
 
-@app.route("/articles/<int:article_id>")
+@app.route("/articles/<uuid:article_id>")
 @measure_time
 def get_article_id_html(article_id):
+    cur = db_connection()
+    cur.execute("""SELECT title, txt, author_id from articles where id=%s""", (str(article_id), ))
+    article = cur.fetchone()
+    if article is None:
+        raise NotFound
+    logging.warn(article)
+    cur.execute("""SELECT username, firstname, lastname from authors where id=%s""", (article[2], ))
+    user = cur.fetchone()
+    user = User(**user)
+    article = Article(article[1], article[0], user)
+    logging.warn(article)
     try:
-        return render_template("article_id.html", article=articles[article_id])
+        return render_template("article_id.html", article=article)
     except KeyError:
         raise NotFound
 
 @app.route("/articles/create", methods=["GET", "POST"])
 @measure_time
 def create_article():
-    t0 = time()
+    connection = get_database_connection()
+    cur = connection.cursor()
     if request.method == "GET":
-        t1 = time()
-        logging.warn("Time taken: {0}".format(t0-t1))
         return render_template("create_article.html")
     else:
-        result = request.form
-        logging.warn(result)
+        title = request.form["title"]
+        text = request.form["text"]
 
-        email = result["email"]
+        email = request.form["email"]
+        logging.warn(1)
+
         m = re.match(EMAIL_PATTERN, email)
         if m is None:
             raise BadRequest("Invalid email address")
         fname, lname = m.groups()        
+        username = "_".join([fname, lname])
+        user = User(username, fname, lname)
+        # two insert statements, db will throw error if username not unique
 
-        user = User("_".join([fname, lname]), fname, lname)
+        logging.warn(2)
 
-        articles[max(articles.keys()) + 1] = Article(result["text"], result["title"], user)
-        logging.info("Article created")
-        logging.debug("Article created")
+        try:
+            cur.execute(
+                """INSERT into authors(firstname, lastname, username) 
+                values (%s, %s, %s)""",
+                (fname, lname, username)
+                )
+            connection.commit()
+            cur.execute("""SELECT id from authors where username=%s""", (username, ))
+            author = cur.fetchone()
+        except psycopg2.errors.UniqueViolation:
+            connection.rollback()
+            cur.execute("""SELECT id from authors where username=%s""", (username, ))
+            author = cur.fetchone()
 
-        t1 = time()
+
+        logging.warn(3)
+
+        # cur.execute("""SELECT * from authors""")
+        # authors=cur.fetchall()
+        # logging.warn(authors)
+
+
+        try:
+            cur.execute(
+                """INSERT into articles(title, txt, author_id) 
+                values (%s, %s, %s)""", 
+                (title, text, author[0])
+                )
+            connection.commit()
+        except Exception as e:
+            logging.warn(e)
+        
+        logging.warn(5)
+
+        articles = retrieve_articles()
+
+
         return render_template("/articles.html", articles=articles)
     
         
