@@ -11,6 +11,7 @@ import psycopg2
 
 from models.user import User
 from models.article import Article
+from contextlib import contextmanager
 
 app = Flask(__name__)
 
@@ -36,12 +37,21 @@ def db_connection():
     cur = connection.cursor()
     return cur  
 
-def retrieve_articles():
-    cur = db_connection()
-    cur.execute("""SELECT id, title from articles""")
-    articles = cur.fetchall()
-    return articles
+def insert_article(title, text, author_id):
+    with get_database_connection() as connection:
+        with connection.cursor() as cur:
+            cur.execute(
+                """INSERT into articles(title, txt, author_id) 
+                values (%s, %s, %s)""", 
+                (title, text, author_id)
+                )
 
+@contextmanager
+def run_query(*query_args):
+    with get_database_connection() as connection:
+        with connection.cursor() as cur:
+            cur.execute(*query_args)
+            yield cur
 
 @app.errorhandler(BadRequest)
 def bad_request(bad_request):
@@ -105,21 +115,21 @@ def get_article(article_id):
 @app.route("/articles")
 @measure_time
 def get_articles_html():
-    articles = retrieve_articles()
+    with run_query("""SELECT id, title from articles""") as cur:
+        articles = cur.fetchall()
     return render_template("articles.html", articles=articles)
 
 @app.route("/articles/<uuid:article_id>")
 @measure_time
 def get_article_id_html(article_id):
-    cur = db_connection()
-    cur.execute("""SELECT title, txt, author_id from articles where id=%s""", (str(article_id), ))
-    article = cur.fetchone()
+    with run_query("""SELECT title, txt, author_id from articles where id=%s""", (str(article_id), )) as cursor:
+        article = cursor.fetchone()
     if article is None:
         raise NotFound
     logging.warn(article)
-    cur.execute("""SELECT username, firstname, lastname from authors where id=%s""", (article[2], ))
-    user = cur.fetchone()
-    user = User(**user)
+    with run_query("""SELECT username, firstname, lastname from authors where id=%s""", (article[2], )) as cursor:
+        user = cursor.fetchone()
+    user = User(*user)
     article = Article(article[1], article[0], user)
     logging.warn(article)
     try:
@@ -152,41 +162,33 @@ def create_article():
         logging.warn(2)
 
         try:
-            cur.execute(
+            run_query(
                 """INSERT into authors(firstname, lastname, username) 
                 values (%s, %s, %s)""",
                 (fname, lname, username)
                 )
-            connection.commit()
-            cur.execute("""SELECT id from authors where username=%s""", (username, ))
-            author = cur.fetchone()
+
+            with run_query("""SELECT id from authors where username=%s""", (username, )) as cursor:
+                author = cursor.fetchone()
         except psycopg2.errors.UniqueViolation:
-            connection.rollback()
-            cur.execute("""SELECT id from authors where username=%s""", (username, ))
-            author = cur.fetchone()
+            with run_query("""SELECT id from authors where username=%s""", (username, )) as cursor:
+                author = cursor.fetchone()
 
-
-        logging.warn(3)
-
-        # cur.execute("""SELECT * from authors""")
-        # authors=cur.fetchall()
-        # logging.warn(authors)
-
+        logging.warn(4)
 
         try:
-            cur.execute(
-                """INSERT into articles(title, txt, author_id) 
-                values (%s, %s, %s)""", 
-                (title, text, author[0])
-                )
-            connection.commit()
+            run_query(
+                """INSERT into articles(title, txt, author_id) values (%s, %s, %s)""", 
+                (title, text, author[0]))
+            logging.warn("article written")
+
         except Exception as e:
             logging.warn(e)
         
         logging.warn(5)
 
-        articles = retrieve_articles()
-
+        with run_query("""SELECT id, title from articles""") as cur:
+            articles = cur.fetchall()
 
         return render_template("/articles.html", articles=articles)
     
