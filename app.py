@@ -12,11 +12,17 @@ import psycopg2
 from models.user import User
 from models.article import Article
 from contextlib import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 app = Flask(__name__)
 
 EMAIL_PATTERN = r"^([a-z]+)\.([a-z]+)\d*@bbc\.co\.uk$"
 
+engine = create_engine('postgresql://blog-app-user:lantern_rouge@127.0.0.1:8080/blog-app-db')
+#                     ('postgresql://username:password@host:port/database')
+Session = sessionmaker(bind=engine)
+session = Session()
 
 def get_database_connection():
     conn = psycopg2.connect("dbname='blog-app-db' user='blog-app-user' host='127.0.0.1' password='lantern_rouge'")
