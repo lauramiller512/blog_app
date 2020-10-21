@@ -12,8 +12,8 @@
       <ul>
       {% for r in articles %}        
       <li>
-        <a href="/articles/{{r[0]}}">
-        {{r[1]}} </a>
+        <a href="/articles/{{r.id}}">
+        {{r.title}} </a>
         </li>
         {% endfor %}
       </ul>
