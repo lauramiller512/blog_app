@@ -79,15 +79,15 @@ def get_articles():
         articles = session.query(Article).all()
         return Response(json.dumps(
             [{"title": i.title} for i in articles]
-        ), mimetype="application/json")
+        ), mimetype="application/json") # necessary as browser otherwise will treat results as html
     else:
         data = request.json
         try:
-            articles[max(articles.keys()) + 1] = Article(
-                data["text"],
+            article = Article(data["text"],
                 data["title"],
-                data["created_by"]
-            )
+                data["created_by"])
+            session.add(article)
+            session.commit()
         except KeyError:
             raise BadRequest("Invalid data provided")
         return (
@@ -144,31 +144,35 @@ def create_article():
 
     if request.method == "GET":
         return render_template("create_article.html")
-    else:
-        title = request.form["title"]
-        text = request.form["text"]
+    title = request.form["title"]
+    text = request.form["text"]
+    logging.warn(text)
+    email = request.form["email"]
+    logging.warn(1)
 
-        email = request.form["email"]
-        logging.warn(1)
-
-        m = re.match(EMAIL_PATTERN, email)
-        if m is None:
-            raise BadRequest("Invalid email address")
-        fname, lname = m.groups()
-        username = "_".join([fname, lname])
-        user = User(username, fname, lname)
-        # two insert statements, db will throw error if username not unique
-        session.add(user)
-        try:
-            session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            session.rollback()
-            user = session.query(User).filter_by(username=username).first()
-
-        article = Article(text, title, user)
-        session.add(article)
+    m = re.match(EMAIL_PATTERN, email)
+    if m is None:
+        raise BadRequest("Invalid email address")
+    fname, lname = m.groups()
+    username = "_".join([fname, lname])
+    user = User(username, fname, lname)
+    # two insert statements, db will throw error if username not unique
+    session.add(user)
+    try:
         session.commit()
+    except sqlalchemy.exc.IntegrityError:
+        session.rollback()
+        user = session.query(User).filter_by(username=username).first()
 
-        articles = session.query(Article).all()
+    article = Article(text, title, user)
+    session.add(article)
+    session.commit()
+    logging.warn(article.text)
 
-        return render_template("/articles.html", articles=articles)
+    articles = session.query(Article).all()
+
+    return render_template("/articles.html", articles=articles)
+
+
+if __name__ ==  "__main__":
+    main()

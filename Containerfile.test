@@ -1,0 +1,13 @@
+FROM centos:8
+
+ARG http_proxy
+ARG https_proxy
+
+RUN mkdir -p /build
+WORKDIR /build
+
+COPY requirements.txt /build
+COPY test/requirements.txt /build/test_requirements.txt
+
+
+RUN dnf module enable --assumeyes --quiet python36 && dnf install --assumeyes --quiet python3 python36-devel python3-systemd python3-wheel && python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt && python3 -m pip install -r test_requirements.txt

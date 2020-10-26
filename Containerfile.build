@@ -1,6 +1,0 @@
-FROM centos:8
-
-ARG http_proxy
-ARG https_proxy
-
-RUN dnf module enable --assumeyes --quiet python36 && dnf install --assumeyes --quiet python3 python36-devel python3-systemd python3-wheel && python3 -m pip install --upgrade pip
