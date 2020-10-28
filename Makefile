@@ -63,7 +63,7 @@ database_container_build:
 		-f Containerfile.db
 
 .PHONY: database_container
-database_container: database_container_build container_network docker_build_alembic # depends on these targets
+database_container: database_container_build container_network alembic_build # depends on these targets
 	@echo "Running a postgres container in the background"
 	$(PODMAN) run -d \
 		-e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
@@ -76,14 +76,32 @@ database_container: database_container_build container_network docker_build_alem
         https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
         --pod $(DATABASE_POD) \
         --rm \
-        cloudteam/blog-app-alembic -n docker upgrade head
+        cloudteam/blog-app-alembic -n alembic upgrade head
 
-.PHONY: docker_build_alembic
-docker_build_alembic:
+.PHONY: alembic_build
+alembic_build:
 	$(PODMAN) build \
     --build-arg http_proxy --build-arg https_proxy \
     --rm -t "cloudteam/blog-app-alembic" \
     -f db/Containerfile.alembic db/
+
+.PHONY: alembic_upgrade
+alembic_upgrade:
+	$(PODMAN) run \
+    -e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
+    -v `pwd`/db/:/workspace \
+    -w /workspace \
+    --pod $(DATABASE_POD) \
+    --rm cloudteam/blog-app-alembic -n alembic upgrade head
+
+.PHONY: alembic_downgrade
+alembic_downgrade:
+	$(PODMAN) run \
+    -e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
+    -v `pwd`/db/:/workspace \
+    -w /workspace \
+    --pod $(DATABASE_POD) \
+    --rm cloudteam/blog-app-alembic -n alembic downgrade -1
 
 .PHONY: new_alembic_revision
 new_alembic_revision:
