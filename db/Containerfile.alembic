@@ -1,0 +1,15 @@
+FROM python:3.6
+
+ARG http_proxy
+ARG https_proxy
+
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+COPY ./alembic_requirements.txt /usr/src/app/
+RUN pip install --no-cache-dir -r alembic_requirements.txt
+
+COPY ./alembic /usr/src/app/alembic
+COPY ./alembic.ini /usr/src/app/alembic.ini
+
+ENTRYPOINT ["alembic"]

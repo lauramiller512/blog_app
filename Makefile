@@ -63,7 +63,7 @@ database_container_build:
 		-f Containerfile.db
 
 .PHONY: database_container
-database_container: database_container_build container_network # depends on these targets
+database_container: database_container_build container_network docker_build_alembic # depends on these targets
 	@echo "Running a postgres container in the background"
 	$(PODMAN) run -d \
 		-e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
@@ -71,3 +71,24 @@ database_container: database_container_build container_network # depends on thes
 		--name $(DATABASE_CONTAINER) \
 		--pod $(DATABASE_POD) \
 		cloudteam/blog-app-database -c max_connections=50
+	sleep 10
+	$(PODMAN) run -e \
+        https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
+        --pod $(DATABASE_POD) \
+        --rm \
+        cloudteam/blog-app-alembic -n docker upgrade head
+
+.PHONY: docker_build_alembic
+docker_build_alembic:
+	$(PODMAN) build \
+    --build-arg http_proxy --build-arg https_proxy \
+    --rm -t "cloudteam/blog-app-alembic" \
+    -f db/Containerfile.alembic db/
+
+.PHONY: new_alembic_revision
+new_alembic_revision:
+	$(PODMAN) run \
+    -e https_proxy=${https_proxy} -e http_proxy=${http_proxy} \
+    -v `pwd`/db/:/workspace \
+    -w /workspace \
+    --rm cloudteam/blog-app-alembic revision -m "${NAME}"
