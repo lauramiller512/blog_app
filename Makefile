@@ -32,11 +32,9 @@ test_container:
     --rm -t "cloudteam/blog-app-test" \
     -f Containerfile.test .
 
-.PHONY: test
-test: app_container unit_test
-
 .PHONY: unit_test
-unit_test: test_container database_container
+unit_test: test_container
+	sleep 10
 	$(WITH_TEST_CONTAINER) python3 -m unittest discover -v -s ./test
 
 .PHONY: run_app

@@ -1,5 +1,6 @@
 import unittest
 import mock
+import requests
 from app import app
 
 class TestGetRequest(unittest.TestCase):
@@ -9,5 +10,5 @@ class TestGetRequest(unittest.TestCase):
 	    # response = requests.get('http://192.168.193.22:8080/json/articles')
 
 	    # Confirm that the request-response cycle completed successfully.
-	    # assert_true(response.ok)
-		pass
+	    assert_true(True)
+		# pass
