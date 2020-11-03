@@ -34,7 +34,6 @@ test_container:
 
 .PHONY: unit_test
 unit_test: test_container
-	sleep 10
 	$(WITH_TEST_CONTAINER) python3 -m unittest discover -v -s ./test
 
 .PHONY: run_app

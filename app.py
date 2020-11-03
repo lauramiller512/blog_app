@@ -74,8 +74,8 @@ def hello_world():
 @app.route("/json/articles", methods=["GET", "POST"])
 @measure_time
 def get_articles():
+    session = session_factory()
     if request.method == "GET":
-        session = session_factory()
         articles = session.query(Article).all()
         return Response(json.dumps(
             [{"title": i.title} for i in articles]
