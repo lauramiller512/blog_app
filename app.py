@@ -45,21 +45,36 @@ def measure_time(f):
         t0 = time()
         result = f(*args, **kwargs)
         t1 = time()
-        logging.warn("Time taken: {0}".format(t1-t0))
+        logging.info("Time taken: {0}".format(t1-t0))
         return result
     return decorated_function
 
+def get_user(email, session):
+    m = re.match(EMAIL_PATTERN, email)
+    if m is None:
+        raise BadRequest("Invalid email address")
+    fname, lname = m.groups()
+    username = "_".join([fname, lname])
+    user = User(username, fname, lname)
+    # two insert statements, db will throw error if username not unique
+    session.add(user)
+    try:
+        session.commit()
+    except sqlalchemy.exc.IntegrityError:
+        session.rollback()
+        user = session.query(User).filter_by(username=username).first()
+    return user
 
 @app.errorhandler(BadRequest)
 def bad_request(bad_request):
-    logging.warn(str(bad_request))
-    return Response(json.dumps({"error": str(bad_request)})), 400
+    logging.warning(str(bad_request))
+    return Response(json.dumps({"error": str(bad_request)}), mimetype="application/json"), 400
 
 
 @app.errorhandler(NotFound)
 def not_found(error):
     if request.path.startswith("/json"):
-        return Response(json.dumps({"error": str(error)})), 404
+        return Response(json.dumps({"error": str(error)}), mimetype="application/json"), 404
     else:
         return render_template("not_found.html"), 404
 
@@ -82,10 +97,12 @@ def get_articles():
         ), mimetype="application/json") # necessary as browser otherwise will treat results as html
     else:
         data = request.json
+        email = data["created_by"]
+        user = get_user(email, session)
+
+        # article = Article(text, title, user)
         try:
-            article = Article(data["text"],
-                data["title"],
-                data["created_by"])
+            article = Article(data["text"], data["title"], user)
             session.add(article)
             session.commit()
         except KeyError:
@@ -107,7 +124,7 @@ def get_article(article_id):
     if request.method == "GET":
         new_dict = {
             "title": article.title,
-            "text": article.txt,
+            "text": article.text,
             "created_by": article.created_by.username
         }
         return Response(json.dumps(new_dict), mimetype="application/json")
@@ -146,28 +163,13 @@ def create_article():
         return render_template("create_article.html")
     title = request.form["title"]
     text = request.form["text"]
-    logging.warn(text)
     email = request.form["email"]
-    logging.warn(1)
 
-    m = re.match(EMAIL_PATTERN, email)
-    if m is None:
-        raise BadRequest("Invalid email address")
-    fname, lname = m.groups()
-    username = "_".join([fname, lname])
-    user = User(username, fname, lname)
-    # two insert statements, db will throw error if username not unique
-    session.add(user)
-    try:
-        session.commit()
-    except sqlalchemy.exc.IntegrityError:
-        session.rollback()
-        user = session.query(User).filter_by(username=username).first()
+    user = get_user(email, session)
 
     article = Article(text, title, user)
     session.add(article)
     session.commit()
-    logging.warn(article.text)
 
     articles = session.query(Article).all()
 
