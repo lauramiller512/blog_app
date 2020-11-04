@@ -2,9 +2,11 @@ import json
 import unittest
 from mock import patch
 import requests
-from app import app, session_factory
+from app import app, session_factory, get_user
 from models.article import Article
 from models.user import User
+from werkzeug.exceptions import BadRequest
+
 
 class TestGetRequest(unittest.TestCase):
 
@@ -163,6 +165,31 @@ class TestGetRequest(unittest.TestCase):
             article.title, "Bikes are awesome"
         )
 
+    def test_get_user_already_exists(self):
+        # user already exists
+        user = User("laura_miller", "laura", "miller")
+        self.session.add(user)
+        self.session.commit()
 
-# test for get json/articles if given non-existant uuid. raise proper error
-# test for delete /json/articles/<uuid:article_id>; check status code and response body is empty
+        user_email = "laura.miller03@bbc.co.uk"
+        result = get_user(user_email, self.session)
+        user_list = self.session.query(User).all()
+        self.assertEqual(result, user)
+        self.assertEqual([result], user_list)
+
+    def test_get_new_user(self):
+        # user doesn't exist
+        user_email = "yavor.atanasov@bbc.co.uk"
+        result = get_user(user_email, self.session)
+
+        user_list = self.session.query(User).all()
+        self.assertEqual([result], user_list)
+
+
+    def test_get_user_invalid_email(self):
+        # email doesn't match
+        user_email = "laura.miller@gmail.com"
+
+        with self.assertRaises(BadRequest):
+            get_user(user_email, self.session)
+
