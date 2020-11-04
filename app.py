@@ -147,7 +147,7 @@ def get_articles_html():
 def get_article_id_html(article_id):
     session = session_factory()
     article = session.query(Article).filter_by(id=str(article_id)).first()
-    logging.warn(article)
+    logging.warning(article)
     try:
         return render_template("article_id.html", article=article)
     except KeyError:
@@ -164,6 +164,7 @@ def create_article():
     title = request.form["title"]
     text = request.form["text"]
     email = request.form["email"]
+    logging.warning(request.content_type)
 
     user = get_user(email, session)
 

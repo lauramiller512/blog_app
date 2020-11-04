@@ -149,5 +149,20 @@ class TestGetRequest(unittest.TestCase):
         )
         mocked_logging.warning.assert_called_once_with("400 Bad Request: Invalid data provided")
 
+    def test_create_article_html_form(self):
+        response = self.client.post("/articles/create", data=dict(
+            text="This is my article",
+            title="Bikes are awesome",
+            created_by="yavor.atanasov@bbc.co.uk"
+        ), content_type='application/x-www-form-urlencoded')
+        print(response.get_data())
+        self.assertEqual(response.status_code, 200)
+
+        article = self.session.query(Article).first()
+        self.assertEqual(
+            article.title, "Bikes are awesome"
+        )
+
+
 # test for get json/articles if given non-existant uuid. raise proper error
 # test for delete /json/articles/<uuid:article_id>; check status code and response body is empty
