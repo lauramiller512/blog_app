@@ -150,12 +150,12 @@ class TestGetRequest(unittest.TestCase):
         mocked_logging.warning.assert_called_once_with("400 Bad Request: Invalid data provided")
 
     def test_create_article_html_form(self):
-        response = self.client.post("/articles/create", data=dict(
-            text="This is my article",
-            title="Bikes are awesome",
-            created_by="yavor.atanasov@bbc.co.uk"
-        ), content_type='application/x-www-form-urlencoded')
-        print(response.get_data())
+        response = self.client.post("/articles/create", data={
+            "text": "This is my article",
+            "title": "Bikes are awesome",
+            "email": "yavor.atanasov@bbc.co.uk"
+        }, content_type='application/x-www-form-urlencoded')
+
         self.assertEqual(response.status_code, 200)
 
         article = self.session.query(Article).first()
